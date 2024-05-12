@@ -6,7 +6,7 @@
           <a href="#future_value"> Future Value Calculator </a>
         </span>
         <span :class="{ active: calcType == 'expected_rate' }">
-          <a href="#expected_rate"> Expected Rate of return calculator </a>
+          <a href="#expected_rate"> Expected Rate of Return Calculator </a>
         </span>
         <span :class="{ active: calcType == 'expected_period' }">
           <a href="#expected_period"> Expected Period Calculator </a>
@@ -22,6 +22,18 @@
           <input type="number" v-model="initialInvestment" />
         </div>
         <div>
+          <label for="monthly-investment">Monthly Investment</label>
+          <input type="number" v-model="monthly_investment" />
+        </div>
+        <div>
+          <label for="quarterly-investment">Quarterly Investment</label>
+          <input type="number" v-model="quarterly_investment" />
+        </div>
+        <div>
+          <label for="yearly-investment">Yearly Investment</label>
+          <input type="number" v-model="yearly_investment" />
+        </div>
+        <div>
           <label for="duration">Duration (in months)</label>
           <input
             type="number"
@@ -30,7 +42,7 @@
           />
         </div>
         <div>
-          <label for="duration">Rate</label>
+          <label for="rate">Rate</label>
           <input
             type="number"
             v-model="rate"
@@ -38,7 +50,7 @@
           />
         </div>
         <div>
-          <label for="duration">Future Value</label>
+          <label for="future-value">Future Value</label>
           <input
             type="number"
             v-model="futureValue"
@@ -113,9 +125,10 @@ input[type="number"] {
 
 <script>
 import PieChart from "./PieChart.vue";
+import { Finance } from "financejs";
 
 export default {
-  name: "future_value_calculator",
+  name: "FutureValueCalculator",
   components: {
     PieChart,
   },
@@ -126,6 +139,10 @@ export default {
       duration: 60,
       futureValue: 0,
       calcType: "future_value",
+      monthly_investment: 10000,
+      quarterly_investment: 0,
+      yearly_investment: 50000,
+      expected_return: 0,
     };
   },
   computed: {
@@ -181,11 +198,48 @@ export default {
       this.futureValue = value.toFixed(2); // Return future value with 2 decimal places
     },
     calc_expected_rate() {
-      // TODO
+      let starting_investment_value = -this.initialInvestment;
+      let something =
+        -this.monthly_investment * 12 +
+        -this.yearly_investment +
+        -this.quarterly_investment * 4;
+
+      let starting_investment_arr = new Array(20).fill(something);
+      starting_investment_arr[0] = starting_investment_value;
+      starting_investment_arr[19] = this.futureValue;
+
+      // You need to use a library like financejs to calculate the IRR
+      // Let's assume you're using financejs
+      const finance = new Finance();
+      this.expected_return = finance.IRR(starting_investment_arr) * 100; // Multiply by 100 to get percentage
     },
     calc_expected_period() {
-      // TODO
+      const expected_return_rate = this.expected_return / 12;
+      const yearly_investment_rate = -this.yearly_investment / 12;
+      const quarterly_investment_rate = -this.quarterly_investment / 3;
+
+      const base_expectation =
+        this.nper(
+          expected_return_rate,
+          yearly_investment_rate +
+            quarterly_investment_rate +
+            -this.monthly_investment,
+          -this.starting_investment,
+          this.future_value
+        ) / 12;
+
+      return base_expectation;
     },
+    nper(rate, payment, present_value, future_value) {
+      // Calculate the number of periods
+      const num_periods =
+        Math.log(
+          (payment - rate * future_value) / (payment + rate * present_value)
+        ) / Math.log(1 + rate);
+
+      return num_periods;
+    },
+
     refresh_state() {
       const route = window.location.hash;
       this.calcType = route.replace("#", "");
