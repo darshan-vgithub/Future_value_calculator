@@ -2,14 +2,14 @@
   <div>
     <div>
       <div class="nav">
-        <span :class="{ active: calcType == 'future_value' }">
-          <a href="#future_value"> Future Value Calculator </a>
+        <span :class="{ active: calcType === 'future_value' }">
+          <a href="#future_value">Future Value Calculator</a>
         </span>
-        <span :class="{ active: calcType == 'expected_rate' }">
-          <a href="#expected_rate"> Expected Rate of Return Calculator </a>
+        <span :class="{ active: calcType === 'expected_rate' }">
+          <a href="#expected_rate">Expected Rate of Return Calculator</a>
         </span>
-        <span :class="{ active: calcType == 'expected_period' }">
-          <a href="#expected_period"> Expected Period Calculator </a>
+        <span :class="{ active: calcType === 'expected_period' }">
+          <a href="#expected_period">Expected Period Calculator</a>
         </span>
       </div>
     </div>
@@ -38,7 +38,7 @@
           <input
             type="number"
             v-model="duration"
-            :readonly="calcType == 'expected_period'"
+            :readonly="calcType === 'expected_period'"
           />
         </div>
         <div>
@@ -46,7 +46,7 @@
           <input
             type="number"
             v-model="rate"
-            :readonly="calcType == 'expected_rate'"
+            :readonly="calcType === 'expected_rate'"
           />
         </div>
         <div>
@@ -54,7 +54,7 @@
           <input
             type="number"
             v-model="futureValue"
-            :readonly="calcType == 'future_value'"
+            :readonly="calcType === 'future_value'"
           />
         </div>
 
@@ -108,7 +108,6 @@ input[readonly] {
 
 .left-panel {
   padding-right: 30px;
-
   border-right: solid #eee 3px;
 }
 
@@ -146,16 +145,6 @@ export default {
     };
   },
   computed: {
-    changedData() {
-      const { rate, initialInvestment, duration, futureValue, calcType } = this;
-      return {
-        rate,
-        initialInvestment,
-        duration,
-        futureValue,
-        calcType,
-      };
-    },
     WealthGained() {
       if (!this.futureValue || !this.initialInvestment) return null;
 
@@ -198,36 +187,46 @@ export default {
       this.futureValue = value.toFixed(2); // Return future value with 2 decimal places
     },
     calc_expected_rate() {
-      let starting_investment_value = -this.initialInvestment;
-      let something =
-        -this.monthly_investment * 12 +
-        -this.yearly_investment +
-        -this.quarterly_investment * 4;
+      // Create an array of cash flows for the IRR calculation
+      const cashFlows = [];
+      cashFlows.push(-this.initialInvestment); // Initial investment is negative
+      for (let i = 1; i <= 20; i++) {
+        // Calculate cash flows for each period
+        const cashFlow =
+          -this.monthly_investment * 12 +
+          -this.yearly_investment +
+          -this.quarterly_investment * 4;
+        cashFlows.push(cashFlow);
+      }
+      cashFlows[cashFlows.length - 1] += this.futureValue; // Add future value as positive cash flow at the end
 
-      let starting_investment_arr = new Array(20).fill(something);
-      starting_investment_arr[0] = starting_investment_value;
-      starting_investment_arr[19] = this.futureValue;
+      // Ensure there are both positive and negative cash flows for IRR calculation
+      if (
+        cashFlows.every((value) => value >= 0) ||
+        cashFlows.every((value) => value <= 0)
+      ) {
+        // If all cash flows are positive or all are negative, adjust the last one
+        cashFlows[cashFlows.length - 1] -= this.futureValue;
+      }
 
-      // You need to use a library like financejs to calculate the IRR
-      // Let's assume you're using financejs
+      // Calculate IRR using Finance library
       const finance = new Finance();
-      this.expected_return = finance.IRR(starting_investment_arr) * 100; // Multiply by 100 to get percentage
-    },
+      this.expected_return = finance.IRR(cashFlows) * 100; // Multiply by 100 to get percentage
+    },  
+
     calc_expected_period() {
       const expected_return_rate = this.expected_return / 12;
       const yearly_investment_rate = -this.yearly_investment / 12;
       const quarterly_investment_rate = -this.quarterly_investment / 3;
-
       const base_expectation =
         this.nper(
           expected_return_rate,
           yearly_investment_rate +
             quarterly_investment_rate +
             -this.monthly_investment,
-          -this.starting_investment,
-          this.future_value
+          -this.initialInvestment,
+          this.futureValue
         ) / 12;
-
       return base_expectation;
     },
     nper(rate, payment, present_value, future_value) {
@@ -236,13 +235,19 @@ export default {
         Math.log(
           (payment - rate * future_value) / (payment + rate * present_value)
         ) / Math.log(1 + rate);
-
       return num_periods;
     },
 
     refresh_state() {
       const route = window.location.hash;
       this.calcType = route.replace("#", "");
+      if (
+        this.calcType === "expected_rate" ||
+        this.calcType === "expected_period"
+      ) {
+        // Update the hash in the URL to reflect the current calculator type
+        window.location.hash = this.calcType;
+      }
       this.calculate();
     },
   },
