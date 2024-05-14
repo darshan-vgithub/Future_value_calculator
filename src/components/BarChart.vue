@@ -13,24 +13,8 @@ export default {
       required: true,
     },
   },
-  data() {
-    return {
-      chart: null,
-    };
-  },
   mounted() {
     this.renderChart();
-  },
-  watch: {
-    data: {
-      handler(newData) {
-        if (this.chart) {
-          this.chart.data.datasets[0].data = newData;
-          this.chart.update();
-        }
-      },
-      deep: true,
-    },
   },
   methods: {
     renderChart() {
@@ -50,13 +34,40 @@ export default {
           ],
         },
         options: {
+          indexAxis: "x",
+          responsive: true,
+          plugins: {
+            legend: {
+              display: false,
+            },
+            title: {
+              display: true,
+              text: "Investment and Wealth Gained",
+            },
+          },
           scales: {
+            x: {
+              beginAtZero: true,
+            },
             y: {
               beginAtZero: true,
             },
           },
         },
       });
+    },
+  },
+  watch: {
+    data: {
+      handler(newData) {
+        if (this.chart) {
+          this.chart.data.datasets[0].data = newData;
+          this.chart.update();
+        } else {
+          this.renderChart();
+        }
+      },
+      deep: true,
     },
   },
 };
