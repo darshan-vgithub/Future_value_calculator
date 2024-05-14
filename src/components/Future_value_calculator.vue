@@ -103,7 +103,30 @@ export default {
       return [this.initialInvestment, parseFloat(this.wealthGained)];
     },
   },
-  
+  watch: {
+    // Watch for changes in the input fields and recalculate
+    initialInvestment: function() {
+      this.calculate();
+    },
+    monthly_investment: function() {
+      this.calculate();
+    },
+    quarterly_investment: function() {
+      this.calculate();
+    },
+    yearly_investment: function() {
+      this.calculate();
+    },
+    duration: function() {
+      this.calculate();
+    },
+    rate: function() {
+      this.calculate();
+    },
+    futureValue: function() {
+      this.calculate();
+    },
+  },
   methods: {
     calculate() {
       switch (this.calcType) {
